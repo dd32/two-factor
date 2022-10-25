@@ -50,6 +50,7 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 * @codeCoverageIgnore
 	 */
 	protected function __construct() {
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'two_factor_user_options_' . __CLASS__, array( $this, 'user_two_factor_options' ) );
 		add_action( 'personal_options_update', array( $this, 'user_two_factor_options_update' ) );
 		add_action( 'edit_user_profile_update', array( $this, 'user_two_factor_options_update' ) );
@@ -76,6 +77,21 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 	 */
 	public function get_label() {
 		return _x( 'Time Based One-Time Password (TOTP)', 'Provider Label', 'two-factor' );
+	}
+
+	/**
+	 * Enqueue scripts
+	 */
+	public function enqueue_assets() {
+		$environment_prefix = file_exists( TWO_FACTOR_DIR . '/dist' ) ? '/dist' : '';
+
+		wp_enqueue_script(
+			'two-factor-qr-code-generator',
+			plugins_url( $environment_prefix . '/includes/qrcode-generator/qrcode.js', __DIR__ ),
+			array(),
+			TWO_FACTOR_VERSION,
+			true
+		);
 	}
 
 	/**
@@ -136,6 +152,40 @@ class Two_Factor_Totp extends Two_Factor_Provider {
 			<p>
 				<?php esc_html_e( 'Please scan the QR code or manually enter the key, then enter an authentication code from your app in order to complete setup.', 'two-factor' ); ?>
 			</p>
+			<p id="two-factor-qr-placeholder"></p>
+
+			<style>
+				#two-factor-qr-placeholder {
+					/* The size of the image will change based on the length of the URL inside it. */
+					min-width: 205px;
+					min-height: 205px;
+				}
+			</style>
+
+			<script>
+				window.addEventListener( 'DOMContentLoaded', function( event ) {
+					/*
+					 * 0 = Automatically select the version, to avoid going over the limit of URL
+					 *     length.
+					 * L = Least amount of error correction, because it's not needed when scanning
+					 *     on a monitor, and it lowers the image size.
+					 */
+					var qr     = qrcode( 0, 'L' );
+					var secret = '<?php echo esc_js( $key ); ?>';
+					var label  = encodeURI( '<?php echo esc_js( $totp_title ); ?>' );
+					var issuer = encodeURI( '<?php echo esc_js( $site_name ); ?>' );
+					var url    = 'otpauth://totp/' + label + '?secret=' + secret + '&issuer=' + issuer;
+
+					qr.addData( url );
+					qr.make();
+
+					// ⚠️ Intentionally using GIF here instead of SVG, for security. The benefits
+					// of SVG in this situation are minimal, but it would introduce the possibility
+					// of malicious JS being injected into the SVG and causing XSS.
+					document.getElementById( 'two-factor-qr-placeholder' ).innerHTML = qr.createImgTag( 5 );
+				} );
+			</script>
+
 			<p>
 				<code><?php echo esc_html( $key ); ?></code>
 			</p>
