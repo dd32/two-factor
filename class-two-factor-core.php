@@ -74,7 +74,6 @@ class Two_Factor_Core {
 	public static function add_hooks( $compat ) {
 		add_action( 'plugins_loaded', array( __CLASS__, 'load_textdomain' ) );
 		add_action( 'init', array( __CLASS__, 'get_providers' ) );
-		add_action( 'wp_login', array( __CLASS__, 'wp_login' ), 10, 2 );
 		add_action( 'clear_auth_cookie', array( __CLASS__, 'clear_auth_cookie' ) );
 		add_action( 'set_auth_cookie', array( __CLASS__, 'set_auth_cookie' ), 10, 4 );
 		add_action( 'send_auth_cookies', array( __CLASS__, 'send_auth_cookies' ) );
@@ -429,29 +428,6 @@ class Two_Factor_Core {
 	}
 
 	/**
-	 * Handle the browser-based login.
-	 *
-	 * @since 0.1-dev
-	 *
-	 * @param string  $user_login Username.
-	 * @param WP_User $user WP_User object of the logged-in user.
-	 */
-	public static function wp_login( $user_login, $user ) {
-		if ( ! self::is_user_using_two_factor( $user->ID ) ) {
-			return;
-		}
-
-		// Invalidate the current login session to prevent from being re-used.
-		self::destroy_current_session_for_user( $user );
-
-		// Clear any cookies which are no longer valid.
-		wp_clear_auth_cookie();
-
-		self::show_two_factor_login( $user );
-		exit;
-	}
-
-	/**
 	 * Keep track of the last user a cookie was generated for.
 	 *
 	 * This is used for when context is not provided via send_auth_cookies.
@@ -494,8 +470,15 @@ class Two_Factor_Core {
 			self::is_user_using_two_factor( self::$last_auth_cookie_user )
 		) {
 			remove_filter( 'send_auth_cookies', array( __CLASS__, __METHOD__ ) );
-
 			$user = get_user_by( 'id', $user_id );
+
+			// Invalidate the current login session to prevent from being re-used.
+			self::destroy_current_session_for_user( $user );
+
+			// Clear any cookies which are no longer valid.
+			wp_clear_auth_cookie();
+
+			// Show the two factor
 			self::show_two_factor_login( $user );
 
 			exit;
