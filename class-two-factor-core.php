@@ -1003,7 +1003,7 @@ class Two_Factor_Core {
 			$rememberme = true;
 		}
 
-		// Allow the cookies to be set.
+		// Allow the cookies to be set, as we don't have any flag to specify 2fa has been completed.
 		remove_filter( 'send_auth_cookies', array( __CLASS__, 'send_auth_cookies' ) );
 
 		wp_set_auth_cookie( $user->ID, $rememberme );
