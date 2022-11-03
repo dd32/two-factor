@@ -469,7 +469,6 @@ class Two_Factor_Core {
 			self::$last_auth_cookie_user &&
 			self::is_user_using_two_factor( self::$last_auth_cookie_user )
 		) {
-			remove_filter( 'send_auth_cookies', array( __CLASS__, __METHOD__ ) );
 			$user = get_user_by( 'id', $user_id );
 
 			// Invalidate the current login session to prevent from being re-used.
