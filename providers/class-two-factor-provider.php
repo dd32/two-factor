@@ -94,8 +94,13 @@ abstract class Two_Factor_Provider {
 		if ( is_array( $chars ) ) {
 			$chars = implode( '', $chars );
 		}
+		$max = strlen( $chars ) - 1;
 		for ( $i = 0; $i < $length; $i++ ) {
-			$code .= substr( $chars, wp_rand( 0, strlen( $chars ) - 1 ), 1 );
+			$index = wp_rand( 0, $max );
+			if ( $index > $max ) {
+				throw new Exception( "$index is greater than $max ???? $length, $chars" );
+			}
+			$code .= substr( $chars, $index, 1 );
 		}
 		return $code;
 	}
